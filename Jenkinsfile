@@ -1,10 +1,9 @@
 pipeline {
     agent any 
     tools {
-        // Note: this should match with the tool name configured in your jenkins instance (JENKINS_URL/configureTools/)
-        maven "MVN_HOME"
-        
-    }
+    maven "MVN_HOME"
+        }
+    
 	 environment {
         // This can be nexus3 or nexus2
         NEXUS_VERSION = "nexus3"
@@ -16,8 +15,15 @@ pipeline {
         NEXUS_REPOSITORY = "devops"
         // Jenkins credential id to authenticate to Nexus OSS
         NEXUS_CREDENTIAL_ID = "nexus"
+        
     }
     stages {
+        stage("verify maven") {
+    steps {
+        sh 'mvn -version'
+        sh 'which mvn'
+       }
+     }
         stage("clone code") {
             steps {
                 script {
