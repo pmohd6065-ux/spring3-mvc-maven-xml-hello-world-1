@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        maven "MVN_HOME"
+        maven "maven"
     }
 
     environment {
@@ -17,7 +17,7 @@ pipeline {
 
         stage("verify maven") {
             steps {
-                sh 'mvn -version'
+                sh 'mvn --version'
                 sh 'which mvn'
             }
         }
