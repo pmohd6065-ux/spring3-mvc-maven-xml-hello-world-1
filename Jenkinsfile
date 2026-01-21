@@ -2,89 +2,20 @@ pipeline {
     agent any 
     tools {
         // Note: this should match with the tool name configured in your jenkins instance (JENKINS_URL/configureTools/)
-        sh "MVN_HOME"
+        maven "MVN_HOME"
         
     }
 	 environment {
-        // This can be nexus3 or nexus2pipeline {
-    agent any
-
-    tools {
-        maven 'Maven3'
-    }
-
-    environment {
-        NEXUS_VERSION = "nexus3"
-        NEXUS_PROTOCOL = "http"
-        NEXUS_URL = "3.133.145.136:8081"
-        NEXUS_REPOSITORY = "devops"
-        NEXUS_CREDENTIAL_ID = "Nexus_server"
-    }
-
-    stages {
-        stage("Clone Code") {
-            steps {
-                git 'https://github.com/betawins/spring3-mvc-maven-xml-hello-world-1.git'
-            }
-        }
-
-        stage("Maven Build") {
-            steps {
-                sh 'mvn -Dmaven.test.skip=true clean package'
-            }
-        }
-
-        stage("Publish to Nexus") {
-            steps {
-                script {
-                    def pom = readMavenPom file: 'pom.xml'
-                    def files = findFiles(glob: "target/*.${pom.packaging}")
-
-                    if (files.length == 0) {
-                        error "No artifact found"
-                    }
-
-                    def artifactPath = files[0].path
-
-                    nexusArtifactUploader(
-                        nexusVersion: NEXUS_VERSION,
-                        protocol: NEXUS_PROTOCOL,
-                        nexusUrl: NEXUS_URL,
-                        groupId: pom.groupId,
-                        artifactId: pom.artifactId,
-                        version: "${BUILD_NUMBER}",
-                        repository: NEXUS_REPOSITORY,
-                        credentialsId: NEXUS_CREDENTIAL_ID,
-                        artifacts: [
-                            [
-                                artifactId: pom.artifactId,
-                                classifier: '',
-                                file: artifactPath,
-                                type: pom.packaging
-                            ],
-                            [
-                                artifactId: pom.artifactId,
-                                classifier: '',
-                                file: "pom.xml",
-                                type: "pom"
-                            ]
-                        ]
-                    )
-                }
-            }
-        }
-    }
-}
-
+        // This can be nexus3 or nexus2
         NEXUS_VERSION = "nexus3"
         // This can be http or https
         NEXUS_PROTOCOL = "http"
         // Where your Nexus is running
-        NEXUS_URL = "3.133.145.136:8081"
+        NEXUS_URL = "54.221.117.254:8081"
         // Repository where we will upload the artifact
         NEXUS_REPOSITORY = "devops"
         // Jenkins credential id to authenticate to Nexus OSS
-        NEXUS_CREDENTIAL_ID = "Nexus_server"
+        NEXUS_CREDENTIAL_ID = "nexus"
     }
     stages {
         stage("clone code") {
