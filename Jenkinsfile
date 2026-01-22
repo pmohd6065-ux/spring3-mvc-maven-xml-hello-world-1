@@ -2,41 +2,9 @@ pipeline {
     agent any
 
     tools {
+        jdk 'jdk8'
         maven 'MVN_HOME'
     }
-
-    stages {
-
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Build & Test') {
-            steps {
-                sh 'java -version'
-                sh 'mvn -version'
-                sh 'mvn clean package'
-            }
-        }
-
-        stage('Archive') {
-            steps {
-                archiveArtifacts artifacts: 'target/*.war', fingerprint: true
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Build completed successfully using JDK 8'
-        }
-        failure {
-            echo 'Build failed'
-        }
-    }
-}
 
     environment {
         NEXUS_VERSION       = 'nexus3'
@@ -60,7 +28,6 @@ pipeline {
         stage('Read & bump version') {
             steps {
                 script {
-                    // Read current version from pom.xml
                     def currentVersion = sh(
                         script: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout",
                         returnStdout: true
@@ -68,27 +35,30 @@ pipeline {
 
                     echo "Current version: ${currentVersion}"
 
-                    // Split MAJOR.MINOR
                     def parts = currentVersion.tokenize('.')
                     def major = parts[0]
                     def minor = parts[1] as int
 
-                    // Auto-increment MINOR
-                    def nextVersion = "${major}.${minor + 1}"
-
-                    env.RELEASE_VERSION = nextVersion
+                    env.RELEASE_VERSION = "${major}.${minor + 1}"
 
                     echo "Next release version: ${env.RELEASE_VERSION}"
 
-                    // Update pom.xml
                     sh "mvn versions:set -DnewVersion=${env.RELEASE_VERSION} -DgenerateBackupPoms=false"
                 }
             }
         }
 
-        stage('Build release') {
+        stage('Build & Test') {
             steps {
+                sh 'java -version'
+                sh 'mvn -version'
                 sh 'mvn -B clean package'
+            }
+        }
+
+        stage('Archive WAR') {
+            steps {
+                archiveArtifacts artifacts: 'target/*.war', fingerprint: true
             }
         }
 
