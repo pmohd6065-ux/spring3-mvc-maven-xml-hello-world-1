@@ -2,73 +2,71 @@ pipeline {
     agent any
 
     tools {
-        maven "MVN_HOME"
+        maven 'M3'     // must exist in Jenkins tools
+        jdk 'JDK17'    // or JDK8 if your infra requires it
     }
 
     environment {
-        NEXUS_VERSION       = "nexus3"
-        NEXUS_PROTOCOL      = "http"
-        NEXUS_URL           = "54.221.117.254:8081"
-        NEXUS_REPOSITORY    = "devops"
-        NEXUS_CREDENTIAL_ID = "nexus"
+        NEXUS_REPO = 'nexus-releases'
+        NEXUS_URL  = 'http://nexus.company.com:8081'
+        GROUP_ID   = 'com.ncodeit'
+        ARTIFACT_ID = 'ncodeit-hello-world'
     }
 
     stages {
-        stage("clone code") {
+
+        stage('Checkout') {
             steps {
-                git 'https://github.com/pmohd6065-ux/spring3-mvc-maven-xml-hello-world-1.git'
+                checkout scm
             }
         }
 
-        stage("mvn build") {
+        stage('Build') {
             steps {
-                sh 'mvn -Dmaven.test.failure.ignore=true clean install'
+                sh 'mvn -B clean package'
             }
         }
 
-        stage("publish to nexus") {
+        stage('Read Version (plugin-safe)') {
             steps {
                 script {
-                    def pom = readMavenPom file: "pom.xml"
+                    env.PROJECT_VERSION = sh(
+                        script: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout",
+                        returnStdout: true
+                    ).trim()
 
-                    def filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
-                    if (filesByGlob.length == 0) {
-                        error "No artifact found in target directory"
-                    }
-
-                    def artifactPath = filesByGlob[0].path
-
-                    echo "*** Uploading ${artifactPath}"
-                    echo "*** GroupId: ${pom.groupId}"
-                    echo "*** ArtifactId: ${pom.artifactId}"
-                    echo "*** Packaging: ${pom.packaging}"
-                    echo "*** Version: ${BUILD_NUMBER}"
-
-                    nexusArtifactUploader(
-                        nexusVersion: NEXUS_VERSION,
-                        protocol: NEXUS_PROTOCOL,
-                        nexusUrl: NEXUS_URL,
-                        groupId: pom.groupId,
-                        version: "${BUILD_NUMBER}",
-                        repository: NEXUS_REPOSITORY,
-                        credentialsId: NEXUS_CREDENTIAL_ID,
-                        artifacts: [
-                            [
-                                artifactId: pom.artifactId,
-                                classifier: '',
-                                file: artifactPath,
-                                type: pom.packaging
-                            ],
-                            [
-                                artifactId: pom.artifactId,
-                                classifier: '',
-                                file: "pom.xml",
-                                type: "pom"
-                            ]
-                        ]
-                    )
+                    echo "Project version: ${env.PROJECT_VERSION}"
                 }
             }
+        }
+
+        stage('Publish to Nexus') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'nexus-creds',
+                    usernameVariable: 'NEXUS_USER',
+                    passwordVariable: 'NEXUS_PASS'
+                )]) {
+
+                    sh """
+                        mvn deploy -B \
+                          -DskipTests \
+                          -Dnexus.url=${NEXUS_URL} \
+                          -DaltDeploymentRepository=${NEXUS_REPO}::default::${NEXUS_URL}/repository/${NEXUS_REPO} \
+                          -Dnexus.username=$NEXUS_USER \
+                          -Dnexus.password=$NEXUS_PASS
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Build & publish successful: ${ARTIFACT_ID}-${PROJECT_VERSION}.war"
+        }
+        failure {
+            echo "❌ Pipeline failed"
         }
     }
 }
