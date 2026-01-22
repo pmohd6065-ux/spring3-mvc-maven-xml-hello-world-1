@@ -4,6 +4,46 @@ pipeline {
     tools {
         maven 'MVN_HOME'
     }
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk8'
+        maven 'maven3'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                sh 'java -version'
+                sh 'mvn -version'
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Archive') {
+            steps {
+                archiveArtifacts artifacts: 'target/*.war', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Build completed successfully using JDK 8'
+        }
+        failure {
+            echo 'Build failed'
+        }
+    }
+}
 
     environment {
         NEXUS_VERSION       = 'nexus3'
