@@ -1,6 +1,7 @@
 node {
 
-    def mvnHome = tool 'maven3'
+    // Use the Maven tool already configured in Jenkins
+    def mvnHome = tool 'MVN_HOME'
 
     stage('clone') {
         checkout scm
