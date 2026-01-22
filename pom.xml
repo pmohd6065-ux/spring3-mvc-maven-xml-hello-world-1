@@ -13,24 +13,39 @@
     <name>spring3 mvc maven</name>
 
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <!-- Keep Java 8 bytecode -->
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
 
         <spring.version>3.2.13.RELEASE</spring.version>
         <jstl.version>1.2</jstl.version>
+
+        <!-- Plugin versions -->
+        <maven.war.plugin.version>3.4.0</maven.war.plugin.version>
+        <jetty.plugin.version>9.4.54.v20240208</jetty.plugin.version>
     </properties>
 
     <dependencies>
+        <!-- Spring MVC -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
             <version>${spring.version}</version>
         </dependency>
 
+        <!-- JSTL -->
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>jstl</artifactId>
             <version>${jstl.version}</version>
+        </dependency>
+
+        <!-- Servlet API (provided by container) -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -39,21 +54,21 @@
 
         <plugins>
 
-            <!-- WAR plugin -->
+            <!-- ✅ FIXED WAR plugin (Java 17 safe) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
-                <version>2.6</version>
+                <version>${maven.war.plugin.version}</version>
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
                 </configuration>
             </plugin>
 
-            <!-- Jetty for local run -->
+            <!-- ✅ UPDATED Jetty (works with modern JDKs) -->
             <plugin>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-maven-plugin</artifactId>
-                <version>9.2.11.v20150529</version>
+                <version>${jetty.plugin.version}</version>
                 <configuration>
                     <scanIntervalSeconds>10</scanIntervalSeconds>
                     <webApp>
@@ -62,16 +77,14 @@
                 </configuration>
             </plugin>
 
-            <!-- Eclipse plugin -->
+            <!-- ⚠️ Optional: Eclipse plugin (obsolete but harmless) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-eclipse-plugin</artifactId>
-                <version>2.9</version>
+                <version>2.10</version>
                 <configuration>
                     <downloadSources>true</downloadSources>
                     <downloadJavadocs>true</downloadJavadocs>
-                    <wtpversion>2.0</wtpversion>
-                    <wtpContextName>spring3</wtpContextName>
                 </configuration>
             </plugin>
 
