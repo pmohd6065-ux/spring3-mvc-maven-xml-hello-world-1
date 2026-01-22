@@ -3,6 +3,7 @@ pipeline {
 
     tools {
         maven 'MVN_HOME'
+        jdk 'JDK17'
     }
 
     environment {
@@ -18,32 +19,48 @@ pipeline {
 
     stages {
 
-        stage('Clone code') {
+        stage('Checkout') {
             steps {
-                git 'https://github.com/pmohd6065-ux/spring3-mvc-maven-xml-hello-world-1.git'
+                checkout scm
             }
         }
 
-        stage('Maven build') {
+        stage('Read & bump version') {
+            steps {
+                script {
+                    // Read current version from pom.xml
+                    def currentVersion = sh(
+                        script: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Current version: ${currentVersion}"
+
+                    // Split MAJOR.MINOR
+                    def parts = currentVersion.tokenize('.')
+                    def major = parts[0]
+                    def minor = parts[1] as int
+
+                    // Auto-increment MINOR
+                    def nextVersion = "${major}.${minor + 1}"
+
+                    env.RELEASE_VERSION = nextVersion
+
+                    echo "Next release version: ${env.RELEASE_VERSION}"
+
+                    // Update pom.xml
+                    sh "mvn versions:set -DnewVersion=${env.RELEASE_VERSION} -DgenerateBackupPoms=false"
+                }
+            }
+        }
+
+        stage('Build release') {
             steps {
                 sh 'mvn -B clean package'
             }
         }
 
-        stage('Read project version') {
-            steps {
-                script {
-                    env.PROJECT_VERSION = sh(
-                        script: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout",
-                        returnStdout: true
-                    ).trim()
-
-                    echo "Project version = ${env.PROJECT_VERSION}"
-                }
-            }
-        }
-
-        stage('Upload to Nexus') {
+        stage('Upload to Nexus (RELEASE)') {
             steps {
                 script {
                     nexusArtifactUploader(
@@ -54,26 +71,35 @@ pipeline {
                         credentialsId: NEXUS_CREDENTIAL_ID,
 
                         groupId: GROUP_ID,
-                        version: PROJECT_VERSION,
+                        version: RELEASE_VERSION,
 
                         artifacts: [[
                             artifactId: ARTIFACT_ID,
-                            classifier: '',
                             type: 'war',
-                            file: "target/${ARTIFACT_ID}-${PROJECT_VERSION}.war"
+                            file: "target/${ARTIFACT_ID}-${RELEASE_VERSION}.war"
                         ]]
                     )
                 }
+            }
+        }
+
+        stage('Commit version bump') {
+            steps {
+                sh """
+                   git status
+                   git commit -am "Release ${RELEASE_VERSION}"
+                   git push origin HEAD:main
+                """
             }
         }
     }
 
     post {
         success {
-            echo "✅ Successfully uploaded ${ARTIFACT_ID}-${PROJECT_VERSION}.war to Nexus"
+            echo "✅ Released ${ARTIFACT_ID}-${RELEASE_VERSION}"
         }
         failure {
-            echo "❌ Nexus upload failed"
+            echo "❌ Release failed"
         }
     }
 }
