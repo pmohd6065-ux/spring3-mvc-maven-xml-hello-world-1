@@ -1,17 +1,19 @@
 node {
 
+    def mvnHome = tool 'maven3'
+
     stage('clone') {
         checkout scm
     }
 
     stage('build') {
         sh 'java -version'
-        sh 'mvn -version'
-        sh 'mvn clean package'
+        sh "${mvnHome}/bin/mvn -version"
+        sh "${mvnHome}/bin/mvn clean package"
     }
 
     stage('test') {
-        sh 'mvn test'
+        sh "${mvnHome}/bin/mvn test"
     }
 
     stage('archive') {
