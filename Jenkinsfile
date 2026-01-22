@@ -11,8 +11,9 @@ pipeline {
         NEXUS_URL           = '54.221.117.254:8081'
         NEXUS_REPOSITORY    = 'devops'
         NEXUS_CREDENTIAL_ID = 'Nexus'
-        GROUP_ID            = 'com.ncodeit'
-        ARTIFACT_ID         = 'ncodeit-hello-world'
+
+        GROUP_ID    = 'com.ncodeit'
+        ARTIFACT_ID = 'ncodeit-hello-world'
     }
 
     stages {
@@ -29,7 +30,7 @@ pipeline {
             }
         }
 
-        stage('Read project version (plugin-safe)') {
+        stage('Read project version') {
             steps {
                 script {
                     env.PROJECT_VERSION = sh(
@@ -37,7 +38,7 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    echo "Project version: ${env.PROJECT_VERSION}"
+                    echo "Project version = ${env.PROJECT_VERSION}"
                 }
             }
         }
@@ -53,10 +54,10 @@ pipeline {
                         credentialsId: NEXUS_CREDENTIAL_ID,
 
                         groupId: GROUP_ID,
-                        artifactId: ARTIFACT_ID,
                         version: PROJECT_VERSION,
 
                         artifacts: [[
+                            artifactId: ARTIFACT_ID,
                             classifier: '',
                             type: 'war',
                             file: "target/${ARTIFACT_ID}-${PROJECT_VERSION}.war"
@@ -69,10 +70,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Uploaded ${ARTIFACT_ID}-${PROJECT_VERSION}.war to Nexus"
+            echo "✅ Successfully uploaded ${ARTIFACT_ID}-${PROJECT_VERSION}.war to Nexus"
         }
         failure {
-            echo "❌ Pipeline failed"
+            echo "❌ Nexus upload failed"
         }
     }
 }
